@@ -9,20 +9,13 @@ Import csv to google sheets from connect_to_database
 import os
 import gspread
 import psycopg2
+import scrape
 from oauth2client.service_account import ServiceAccountCredentials
 from config import user, database, password
 
 
-def connect_to_database():
-    try:
-        connection = psycopg2.connect(database=database, user=user, password=password)
-        return connection
-    except Exception as e:
-        print(e)
-        exit()
-
 def db_to_csv():
-    connection = connect_to_database()
+    connection = scrape.connect_to_database()
     cursor = connection.cursor()
 
     query = """COPY (SELECT * FROM addresses ORDER BY yield DESC) TO STDOUT WITH CSV HEADER"""

@@ -23,6 +23,7 @@ def connect_to_database():
         exit()
 
 def load_addresses():
+    #get previously researched houses
     connection = connect_to_database()
     cursor = connection.cursor()
     query = '''SELECT address, price, rent FROM addresses;'''
@@ -38,9 +39,10 @@ def load_addresses():
 
     return address_dict
 
-#def fetch_last_task_data():
-    #results = requests.get(apify_url)
-    #return results
+def fetch_last_task_data():
+    #Get the most recently run Zillow scrape from Apify
+    results = requests.get(apify_url)
+    return results
 
 
 def get_rent_estimates(already_queried_addresses, results):
@@ -48,12 +50,13 @@ def get_rent_estimates(already_queried_addresses, results):
     for result in results:
         querystring = build_querystring(result)
 
-        #No querystring == no build year
+        #No querystring = no build year
         if querystring:
             #Create/update db entries
             if querystring["address"] in already_queried_addresses:
-                # index 0 == price
-                # index 1 == rent
+                # index 0 = price
+                # index 1 = rent
+                # Realty Mole API is expensive, so don't lookup rents more than once!
                 if already_queried_addresses[querystring["address"]][0] != result["price"]:
                     already_queried_addresses[querystring["address"]][0] = result["price"]
                     update_db_entry(querystring["address"], result["price"], already_queried_addresses[querystring["address"]][1])
@@ -98,6 +101,8 @@ def update_db_entry(address, price, rent):
              SET price = %s, yield = %s
              WHERE address = %s;'''
 
+
+    # True yields of houses only ~65% of naive formula number
     true_yield = (65 * 12 * rent) / price
 
     cursor.execute(update, (price, true_yield, address))
@@ -149,6 +154,7 @@ def main():
 
     with open("Test_dataset.json", "r") as data:
         results = json.loads(data.read())
+        
     get_rent_estimates(already_queried_addresses, results)
 
 
